@@ -1,8 +1,14 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Main Menu";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="max-w-md mx-auto text-center">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8">Welcome to Command Game</h1>
+    
+    <div class="space-y-4">
+        <a asp-action="Game" 
+           class="inline-block w-full px-6 py-3 text-lg font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+            Play Game
+        </a>
+    </div>
 </div>
