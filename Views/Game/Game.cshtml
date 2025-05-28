@@ -1,0 +1,86 @@
+@model CommandGame.Models.GameState
+@{
+    var grid = Model.Grid;
+    var ship = Model.Ship;
+    Func<CommandGame.Models.TileColor, string> TileColorClass = color =>
+        color == CommandGame.Models.TileColor.Red ? "tile-red" :
+        color == CommandGame.Models.TileColor.Blue ? "tile-blue" :
+        color == CommandGame.Models.TileColor.Green ? "tile-green" :
+        color == CommandGame.Models.TileColor.White ? "tile-white" :
+        "tile-none";
+    var commandTypes = new[] { "Up", "Down", "Left", "Right", "ChangeColor", "CallFunction" };
+    var colors = new[] { "None", "Red", "Blue", "Green" };
+    var userCommands = ViewBag.UserCommands as List<CommandGame.Models.UserCommand> ?? new List<CommandGame.Models.UserCommand>();
+}
+
+<h2>Command Game Prototype</h2>
+
+<div class="command-editor">
+    <h3>Build Your Function (f0)</h3>
+    <form method="post" asp-action="Index" asp-controller="Game">
+        <select name="commandType">
+            @foreach (var type in commandTypes)
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+        <select name="color">
+            @foreach (var color in colors)
+            {
+                <option value="@color">@color</option>
+            }
+        </select>
+        <button type="submit" name="action" value="add">Add Command</button>
+        <button type="submit" name="action" value="run">Run</button>
+    </form>
+    <div>
+        <strong>Current f0:</strong>
+        <ol>
+            @foreach (var cmd in userCommands)
+            {
+                <li>@cmd.Type (@cmd.Color)</li>
+            }
+        </ol>
+    </div>
+</div>
+
+@if (Model.IsGameOver)
+{
+    <h3 style="color:@(Model.IsWin ? "green" : "red")">
+        @(Model.IsWin ? "You Win!" : "Game Over")
+    </h3>
+}
+<table class="game-grid">
+    @for (int y = 0; y < grid.GetLength(1); y++)
+    {
+        <tr>
+        @for (int x = 0; x < grid.GetLength(0); x++)
+        {
+            var tile = grid[x, y];
+            <td class="@TileColorClass(tile.Color)">
+                @if (ship.X == x && ship.Y == y)
+                {
+                    <span class="ship">🚀</span>
+                }
+                else if (tile.HasStar)
+                {
+                    <span class="star">⭐</span>
+                }
+            </td>
+        }
+        </tr>
+    }
+</table>
+
+<style>
+.game-grid { border-collapse: collapse; }
+.game-grid td { width: 40px; height: 40px; text-align: center; vertical-align: middle; border: 1px solid #888; font-size: 24px; }
+.tile-red { background: #f88; }
+.tile-blue { background: #88f; }
+.tile-green { background: #8f8; }
+.tile-white { background: #fff; }
+.tile-none { background: #eee; }
+.ship { font-size: 24px; }
+.star { font-size: 22px; }
+.command-editor { margin-bottom: 20px; padding: 10px; background: #f4f4f4; border-radius: 8px; }
+</style> 
