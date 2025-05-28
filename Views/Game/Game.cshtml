@@ -11,6 +11,7 @@
     var commandTypes = new[] { "Up", "Down", "Left", "Right", "ChangeColor", "CallFunction" };
     var colors = new[] { "None", "Red", "Blue", "Green" };
     var userCommands = ViewBag.UserCommands as List<CommandGame.Models.UserCommand> ?? new List<CommandGame.Models.UserCommand>();
+    var commandStack = ViewBag.CommandStack as List<CommandGame.Models.Command> ?? new List<CommandGame.Models.Command>();
 }
 
 <h2>Command Game Prototype</h2>
@@ -18,20 +19,26 @@
 <div class="command-editor">
     <h3>Build Your Function (f0)</h3>
     <form method="post" asp-action="Index" asp-controller="Game">
-        <select name="commandType">
-            @foreach (var type in commandTypes)
-            {
-                <option value="@type">@type</option>
-            }
-        </select>
-        <select name="color">
-            @foreach (var color in colors)
-            {
-                <option value="@color">@color</option>
-            }
-        </select>
-        <button type="submit" name="action" value="add">Add Command</button>
-        <button type="submit" name="action" value="run">Run</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <select name="commandType">
+                @foreach (var type in commandTypes)
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+            <select name="color">
+                @foreach (var color in colors)
+                {
+                    <option value="@color">@color</option>
+                }
+            </select>
+            <button type="submit" name="action" value="add">Add Command</button>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button type="submit" name="action" value="run" style="background: #007bff; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Run</button>
+            <button type="submit" name="action" value="step" style="background: #28a745; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Step</button>
+            <button type="submit" name="action" value="reset" style="background: #dc3545; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Reset</button>
+        </div>
     </form>
     <div>
         <strong>Current f0:</strong>
@@ -44,6 +51,21 @@
     </div>
 </div>
 
+<div class="stack-visualization">
+    <h3>Command Queue</h3>
+    <ol style="list-style-type: decimal;">
+        @for (int i = 0; i < commandStack.Count; i++)
+        {
+            var cmd = commandStack[i];
+            var isFront = (i == 0);
+            <li style="@(isFront ? "background: #ffe066; font-weight: bold;" : "")">
+                @cmd.Type (@(cmd.Color?.ToString() ?? "None"))
+                @if (isFront) { <span style="color: #d35400;">&larr; Next</span> }
+            </li>
+        }
+    </ol>
+</div>
+
 @if (Model.IsGameOver)
 {
     <h3 style="color:@(Model.IsWin ? "green" : "red")">
@@ -51,12 +73,12 @@
     </h3>
 }
 <table class="game-grid">
-    @for (int y = 0; y < grid.GetLength(1); y++)
+    @for (int y = 0; y < grid.Length; y++)
     {
         <tr>
-        @for (int x = 0; x < grid.GetLength(0); x++)
+        @for (int x = 0; x < grid[y].Length; x++)
         {
-            var tile = grid[x, y];
+            var tile = grid[y][x];
             <td class="@TileColorClass(tile.Color)">
                 @if (ship.X == x && ship.Y == y)
                 {
@@ -83,4 +105,5 @@
 .ship { font-size: 24px; }
 .star { font-size: 22px; }
 .command-editor { margin-bottom: 20px; padding: 10px; background: #f4f4f4; border-radius: 8px; }
+.stack-visualization { margin-bottom: 20px; padding: 10px; background: #eaf6ff; border-radius: 8px; }
 </style> 

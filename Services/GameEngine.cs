@@ -9,30 +9,36 @@ namespace CommandGame.Services
         public GameEngine()
         {
             // Hardcoded 6x6 grid for demo
+            int width = 6, height = 6;
+            var grid = new GridTile[height][];
+            for (int y = 0; y < height; y++)
+            {
+                grid[y] = new GridTile[width];
+                for (int x = 0; x < width; x++)
+                {
+                    grid[y][x] = new GridTile { Color = TileColor.Green, HasStar = false };
+                }
+            }
+
+            // Add some colored and white tiles
+            grid[0][0].Color = TileColor.Red;
+            grid[0][1].Color = TileColor.Blue;
+            grid[0][2].Color = TileColor.Green;
+            grid[0][3].Color = TileColor.White; // White tile (lose if touched)
+            grid[0][4].Color = TileColor.Green;
+            grid[0][5].Color = TileColor.Red;
+            grid[2][2].HasStar = true;
+            grid[4][4].HasStar = true;
+
             State = new GameState
             {
-                Grid = new GridTile[6, 6],
+                Grid = grid,
                 Ship = new Ship { X = 1, Y = 0, CollectedStars = 0 },
                 Functions = new List<Function>(),
-                CommandStack = new Stack<Command>(),
+                CommandStack = new Queue<Command>(),
                 ExecutionCount = 0,
                 MaxExecutions = 50
             };
-
-            // Fill grid with green tiles
-            for (int y = 0; y < 6; y++)
-                for (int x = 0; x < 6; x++)
-                    State.Grid[x, y] = new GridTile { Color = TileColor.Green, HasStar = false };
-
-            // Add some colored and white tiles
-            State.Grid[0, 0].Color = TileColor.Red;
-            State.Grid[1, 0].Color = TileColor.Blue;
-            State.Grid[2, 0].Color = TileColor.Green;
-            State.Grid[3, 0].Color = TileColor.White; // White tile (lose if touched)
-            State.Grid[4, 0].Color = TileColor.Green;
-            State.Grid[5, 0].Color = TileColor.Red;
-            State.Grid[2, 2].HasStar = true;
-            State.Grid[4, 4].HasStar = true;
 
             // Hardcoded function: up, right, right, down
             var f0 = new Function
@@ -50,30 +56,30 @@ namespace CommandGame.Services
 
         public void Run()
         {
-            // Push all commands from f0 to stack (reverse order for stack)
-            foreach (var cmd in State.Functions[0].Commands.Reverse<Command>())
-                State.CommandStack.Push(cmd);
+            // Enqueue all commands from f0 in original order
+            foreach (var cmd in State.Functions[0].Commands)
+                State.CommandStack.Enqueue(cmd);
 
             while (State.CommandStack.Count > 0 && !State.IsGameOver && State.ExecutionCount < State.MaxExecutions)
             {
-                var cmd = State.CommandStack.Pop();
+                var cmd = State.CommandStack.Dequeue();
                 State.ExecutionCount++;
-                var tile = State.Grid[State.Ship.X, State.Ship.Y];
+                var tile = State.Grid[State.Ship.Y][State.Ship.X];
                 // Color rule: only execute if colorless or matches tile
                 if (cmd.Color == null || cmd.Color == tile.Color)
                 {
                     ExecuteCommand(cmd);
                     // Check for win/lose
-                    if (State.Grid[State.Ship.X, State.Ship.Y].IsWhite)
+                    if (State.Grid[State.Ship.Y][State.Ship.X].IsWhite)
                     {
                         State.IsGameOver = true;
                         State.IsWin = false;
                         break;
                     }
-                    if (State.Grid[State.Ship.X, State.Ship.Y].HasStar)
+                    if (State.Grid[State.Ship.Y][State.Ship.X].HasStar)
                     {
                         State.Ship.CollectedStars++;
-                        State.Grid[State.Ship.X, State.Ship.Y].HasStar = false;
+                        State.Grid[State.Ship.Y][State.Ship.X].HasStar = false;
                     }
                     if (AllStarsCollected())
                     {
@@ -93,19 +99,21 @@ namespace CommandGame.Services
 
         private void ExecuteCommand(Command cmd)
         {
+            int width = State.Grid[0].Length;
+            int height = State.Grid.Length;
             switch (cmd.Type)
             {
                 case CommandType.Up:
                     if (State.Ship.Y > 0) State.Ship.Y--;
                     break;
                 case CommandType.Down:
-                    if (State.Ship.Y < State.Grid.GetLength(1) - 1) State.Ship.Y++;
+                    if (State.Ship.Y < height - 1) State.Ship.Y++;
                     break;
                 case CommandType.Left:
                     if (State.Ship.X > 0) State.Ship.X--;
                     break;
                 case CommandType.Right:
-                    if (State.Ship.X < State.Grid.GetLength(0) - 1) State.Ship.X++;
+                    if (State.Ship.X < width - 1) State.Ship.X++;
                     break;
                 case CommandType.ChangeColor:
                     // Not implemented in prototype
@@ -118,8 +126,9 @@ namespace CommandGame.Services
 
         private bool AllStarsCollected()
         {
-            foreach (var tile in State.Grid)
-                if (tile.HasStar) return false;
+            foreach (var row in State.Grid)
+                foreach (var tile in row)
+                    if (tile.HasStar) return false;
             return true;
         }
     }

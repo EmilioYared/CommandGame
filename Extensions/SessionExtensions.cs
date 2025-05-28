@@ -16,4 +16,4 @@ namespace CommandGame.Extensions
             return value == null ? default : JsonSerializer.Deserialize<T>(value);
         }
     }
-} 
+}
