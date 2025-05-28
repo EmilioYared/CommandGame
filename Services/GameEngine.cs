@@ -33,22 +33,22 @@ namespace CommandGame.Services
             State = new GameState
             {
                 Grid = grid,
-                Ship = new Ship { X = 1, Y = 0, CollectedStars = 0 },
+                Ship = new Ship { X = 1, Y = 0, CollectedStars = 0, Orientation = Orientation.North },
                 Functions = new List<Function>(),
                 CommandStack = new Queue<Command>(),
                 ExecutionCount = 0,
                 MaxExecutions = 50
             };
 
-            // Hardcoded function: up, right, right, down
+            // Hardcoded function: up, turn right, turn left, callfunction
             var f0 = new Function
             {
                 Commands = new List<Command>
                 {
                     new Command { Type = CommandType.Up, Color = null },
-                    new Command { Type = CommandType.Right, Color = TileColor.Blue },
-                    new Command { Type = CommandType.Right, Color = null },
-                    new Command { Type = CommandType.Down, Color = null }
+                    new Command { Type = CommandType.TurnRight, Color = null },
+                    new Command { Type = CommandType.TurnLeft, Color = null },
+                    new Command { Type = CommandType.CallFunction, Color = null }
                 }
             };
             State.Functions.Add(f0);
@@ -104,22 +104,40 @@ namespace CommandGame.Services
             switch (cmd.Type)
             {
                 case CommandType.Up:
-                    if (State.Ship.Y > 0) State.Ship.Y--;
+                    // Move forward in the current orientation
+                    switch (State.Ship.Orientation)
+                    {
+                        case Orientation.North:
+                            if (State.Ship.Y > 0) State.Ship.Y--;
+                            break;
+                        case Orientation.East:
+                            if (State.Ship.X < width - 1) State.Ship.X++;
+                            break;
+                        case Orientation.South:
+                            if (State.Ship.Y < height - 1) State.Ship.Y++;
+                            break;
+                        case Orientation.West:
+                            if (State.Ship.X > 0) State.Ship.X--;
+                            break;
+                    }
                     break;
-                case CommandType.Down:
-                    if (State.Ship.Y < height - 1) State.Ship.Y++;
+                case CommandType.TurnLeft:
+                    State.Ship.Orientation = (Orientation)(((int)State.Ship.Orientation + 3) % 4);
                     break;
-                case CommandType.Left:
-                    if (State.Ship.X > 0) State.Ship.X--;
-                    break;
-                case CommandType.Right:
-                    if (State.Ship.X < width - 1) State.Ship.X++;
-                    break;
-                case CommandType.ChangeColor:
-                    // Not implemented in prototype
+                case CommandType.TurnRight:
+                    State.Ship.Orientation = (Orientation)(((int)State.Ship.Orientation + 1) % 4);
                     break;
                 case CommandType.CallFunction:
-                    // Not implemented in prototype
+                    if (State.Functions != null && State.Functions.Count > 0)
+                    {
+                        var functionIndex = cmd.FunctionIndex ?? 0;
+                        if (functionIndex >= 0 && functionIndex < State.Functions.Count)
+                        {
+                            var functionToCall = State.Functions[functionIndex];
+                            foreach (var fcmd in functionToCall.Commands)
+                                State.CommandStack.Enqueue(fcmd);
+                        }
+                    }
                     break;
             }
         }

@@ -1,6 +1,6 @@
 ﻿namespace CommandGame.Models
 {
-    public enum CommandType { Up, Down, Left, Right, ChangeColor, CallFunction }
+    public enum CommandType { Up, TurnLeft, TurnRight, CallFunction }
     public class Command
     {
         public CommandType Type { get; set; }

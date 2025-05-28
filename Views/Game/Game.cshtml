@@ -8,10 +8,17 @@
         color == CommandGame.Models.TileColor.Green ? "tile-green" :
         color == CommandGame.Models.TileColor.White ? "tile-white" :
         "tile-none";
-    var commandTypes = new[] { "Up", "Down", "Left", "Right", "ChangeColor", "CallFunction" };
+    var commandTypes = new[] { "Up", "TurnLeft", "TurnRight", "CallFunction" };
     var colors = new[] { "None", "Red", "Blue", "Green" };
     var userCommands = ViewBag.UserCommands as List<CommandGame.Models.UserCommand> ?? new List<CommandGame.Models.UserCommand>();
     var commandStack = ViewBag.CommandStack as List<CommandGame.Models.Command> ?? new List<CommandGame.Models.Command>();
+    string ShipArrow(CommandGame.Models.Orientation orientation) => orientation switch {
+        CommandGame.Models.Orientation.North => "⬆️",
+        CommandGame.Models.Orientation.East => "➡️",
+        CommandGame.Models.Orientation.South => "⬇️",
+        CommandGame.Models.Orientation.West => "⬅️",
+        _ => "⬆️"
+    };
 }
 
 <h2>Command Game Prototype</h2>
@@ -82,7 +89,7 @@
             <td class="@TileColorClass(tile.Color)">
                 @if (ship.X == x && ship.Y == y)
                 {
-                    <span class="ship">🚀</span>
+                    <span class="ship">@ShipArrow(ship.Orientation)</span>
                 }
                 else if (tile.HasStar)
                 {

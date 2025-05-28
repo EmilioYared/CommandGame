@@ -156,10 +156,11 @@ namespace CommandGame.Controllers
                     };
                 }
             }
+            Orientation orientation = Enum.TryParse<Orientation>(level.ShipStartOrientation, out var o) ? o : Orientation.North;
             return new GameState
             {
                 Grid = grid,
-                Ship = new Ship { X = level.ShipStartX, Y = level.ShipStartY, CollectedStars = 0 },
+                Ship = new Ship { X = level.ShipStartX, Y = level.ShipStartY, CollectedStars = 0, Orientation = orientation },
                 Functions = new List<Function>(),
                 CommandStack = new Queue<Command>(),
                 ExecutionCount = 0,
@@ -204,19 +205,28 @@ namespace CommandGame.Controllers
             switch (cmd.Type)
             {
                 case CommandType.Up:
-                    if (state.Ship.Y > 0) state.Ship.Y--;
+                    // Move forward in the current orientation
+                    switch (state.Ship.Orientation)
+                    {
+                        case Orientation.North:
+                            if (state.Ship.Y > 0) state.Ship.Y--;
+                            break;
+                        case Orientation.East:
+                            if (state.Ship.X < width - 1) state.Ship.X++;
+                            break;
+                        case Orientation.South:
+                            if (state.Ship.Y < height - 1) state.Ship.Y++;
+                            break;
+                        case Orientation.West:
+                            if (state.Ship.X > 0) state.Ship.X--;
+                            break;
+                    }
                     break;
-                case CommandType.Down:
-                    if (state.Ship.Y < height - 1) state.Ship.Y++;
+                case CommandType.TurnLeft:
+                    state.Ship.Orientation = (Orientation)(((int)state.Ship.Orientation + 3) % 4);
                     break;
-                case CommandType.Left:
-                    if (state.Ship.X > 0) state.Ship.X--;
-                    break;
-                case CommandType.Right:
-                    if (state.Ship.X < width - 1) state.Ship.X++;
-                    break;
-                case CommandType.ChangeColor:
-                    // Not implemented in prototype
+                case CommandType.TurnRight:
+                    state.Ship.Orientation = (Orientation)(((int)state.Ship.Orientation + 1) % 4);
                     break;
                 case CommandType.CallFunction:
                     if (state.Functions != null && state.Functions.Count > 0)
