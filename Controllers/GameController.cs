@@ -5,18 +5,22 @@ using CommandGame.Extensions;
 using CommandGame.Data;
 using System.Text.Json;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace CommandGame.Controllers
 {
     public class GameController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<GameController> _logger;
         private const string CommandListKey = "UserCommands";
         private const string GameStateKey = "GameState";
+        private const int MaxExecutionsLimit = 1000; // Internal limit to prevent infinite loops during execution
 
-        public GameController(ApplicationDbContext context)
+        public GameController(ApplicationDbContext context, ILogger<GameController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -40,11 +44,33 @@ namespace CommandGame.Controllers
             var userCommands = GetUserCommands();
             if (action == "add")
             {
-                userCommands.Add(new UserCommand
+                var level = _context.Levels.FirstOrDefault(l => l.LevelId == levelId);
+                if (level == null) throw new Exception($"Level {levelId} not found");
+                
+                if (userCommands.Count >= level.MaxCommands)
                 {
-                    Type = commandType,
-                    Color = color
-                });
+                    _logger.LogWarning("Attempted to add command when limit reached: {Count}/{Max}", userCommands.Count, level.MaxCommands);
+                    TempData["Error"] = $"Cannot add more commands. Maximum limit is {level.MaxCommands}.";
+                }
+                else
+                {
+                    userCommands.Add(new UserCommand
+                    {
+                        Type = commandType,
+                        Color = color
+                    });
+                    SaveUserCommands(userCommands);
+                }
+                var state = BuildGameStateFromLevel(levelId);
+                ViewBag.UserCommands = userCommands;
+                ViewBag.CommandStack = state.CommandStack?.ToList();
+                ViewBag.LevelId = levelId;
+                HttpContext.Session.Remove(GameStateKey);
+                return View("Game", state);
+            }
+            else if (action == "clear")
+            {
+                userCommands.Clear();
                 SaveUserCommands(userCommands);
                 var state = BuildGameStateFromLevel(levelId);
                 ViewBag.UserCommands = userCommands;
@@ -142,32 +168,153 @@ namespace CommandGame.Controllers
         {
             var level = _context.Levels.FirstOrDefault(l => l.LevelId == levelId);
             if (level == null) throw new Exception($"Level {levelId} not found");
-            var tiles = JsonSerializer.Deserialize<List<List<TileData>>>(level.TilesJson);
-            var grid = new GridTile[level.Height][];
-            for (int y = 0; y < level.Height; y++)
+            
+            _logger.LogInformation("Building game state for level {LevelId}: {Name}", levelId, level.Name);
+            _logger.LogInformation("Raw TilesJson: {TilesJson}", level.TilesJson);
+            
+            if (string.IsNullOrEmpty(level.TilesJson))
             {
-                grid[y] = new GridTile[level.Width];
-                for (int x = 0; x < level.Width; x++)
-                {
-                    grid[y][x] = new GridTile
-                    {
-                        Color = Enum.Parse<TileColor>(tiles[y][x].Color),
-                        HasStar = tiles[y][x].HasStar
-                    };
-                }
+                _logger.LogError("TilesJson is null or empty for level {LevelId}", levelId);
+                throw new Exception("Level has no tile data");
             }
-            Orientation orientation = Enum.TryParse<Orientation>(level.ShipStartOrientation, out var o) ? o : Orientation.North;
-            return new GameState
+            
+            try
             {
-                Grid = grid,
-                Ship = new Ship { X = level.ShipStartX, Y = level.ShipStartY, CollectedStars = 0, Orientation = orientation },
-                Functions = new List<Function>(),
-                CommandStack = new Queue<Command>(),
-                ExecutionCount = 0,
-                MaxExecutions = level.MaxCommands,
-                IsGameOver = false,
-                IsWin = false
-            };
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var tiles = JsonSerializer.Deserialize<List<List<TileData>>>(level.TilesJson, options);
+                if (tiles == null)
+                {
+                    _logger.LogError("Failed to deserialize tiles JSON");
+                    throw new Exception("Invalid tiles data");
+                }
+                
+                _logger.LogInformation("Deserialized tiles: {Tiles}", JsonSerializer.Serialize(tiles));
+                _logger.LogInformation("Grid dimensions: Height={Height}, Width={Width}, Tiles rows={Rows}, First row columns={Columns}", 
+                    level.Height, level.Width, tiles.Count, tiles.FirstOrDefault()?.Count ?? 0);
+                
+                if (tiles.Count != level.Height)
+                {
+                    _logger.LogError("Tile row count ({Rows}) does not match level height ({Height})", 
+                        tiles.Count, level.Height);
+                    throw new Exception("Invalid grid dimensions");
+                }
+                
+                if (tiles.FirstOrDefault()?.Count != level.Width)
+                {
+                    _logger.LogError("Tile column count ({Columns}) does not match level width ({Width})", 
+                        tiles.FirstOrDefault()?.Count ?? 0, level.Width);
+                    throw new Exception("Invalid grid dimensions");
+                }
+                
+                var grid = new GridTile[level.Height][];
+                for (int y = 0; y < level.Height; y++)
+                {
+                    if (tiles[y] == null)
+                    {
+                        _logger.LogError("Row {Y} is null", y);
+                        throw new Exception($"Invalid tile data at row {y}");
+                    }
+                    
+                    grid[y] = new GridTile[level.Width];
+                    for (int x = 0; x < level.Width; x++)
+                    {
+                        if (tiles[y][x] == null)
+                        {
+                            _logger.LogError("Tile at ({X}, {Y}) is null", x, y);
+                            throw new Exception($"Invalid tile data at ({x}, {y})");
+                        }
+                        
+                        if (string.IsNullOrEmpty(tiles[y][x].Color))
+                        {
+                            _logger.LogError("Tile color at ({X}, {Y}) is null or empty", x, y);
+                            throw new Exception($"Invalid tile color at ({x}, {y})");
+                        }
+                        
+                        _logger.LogInformation("Processing tile at ({X}, {Y}): Color={Color}, HasStar={HasStar}", 
+                            x, y, tiles[y][x].Color, tiles[y][x].HasStar);
+                        
+                        try 
+                        {
+                            // Try to parse the color, handling both formats (with and without 'Color' suffix)
+                            string colorStr = tiles[y][x].Color;
+                            _logger.LogInformation("Raw color string: {ColorStr}", colorStr);
+                            
+                            // Remove any 'Color' suffix if present
+                            if (colorStr.EndsWith("Color"))
+                            {
+                                colorStr = colorStr.Substring(0, colorStr.Length - 5);
+                                _logger.LogInformation("Removed 'Color' suffix: {ColorStr}", colorStr);
+                            }
+                            
+                            _logger.LogInformation("Attempting to parse color: {ColorStr}", colorStr);
+                            
+                            // Try parsing with case-insensitive comparison
+                            if (!Enum.TryParse<TileColor>(colorStr, true, out var parsedColor))
+                            {
+                                _logger.LogError("Failed to parse color: {ColorStr}. Valid values are: {ValidValues}", 
+                                    colorStr, string.Join(", ", Enum.GetNames(typeof(TileColor))));
+                                throw new Exception($"Invalid tile color value: {colorStr}. Must be one of: {string.Join(", ", Enum.GetNames(typeof(TileColor)))}");
+                            }
+                            
+                            _logger.LogInformation("Successfully parsed color: {ParsedColor}", parsedColor);
+                            
+                            grid[y][x] = new GridTile
+                            {
+                                Color = parsedColor,
+                                HasStar = tiles[y][x].HasStar
+                            };
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to parse tile color at ({X}, {Y}): Raw color={RawColor}", 
+                                x, y, tiles[y][x].Color);
+                            throw;
+                        }
+                    }
+                }
+                
+                Orientation orientation;
+                if (string.IsNullOrEmpty(level.ShipStartOrientation))
+                {
+                    _logger.LogWarning("ShipStartOrientation is null or empty, defaulting to North");
+                    orientation = Orientation.North;
+                }
+                else if (!Enum.TryParse<Orientation>(level.ShipStartOrientation, out orientation))
+                {
+                    _logger.LogWarning("Failed to parse ShipStartOrientation: {Orientation}, defaulting to North", level.ShipStartOrientation);
+                    orientation = Orientation.North;
+                }
+                else
+                {
+                    _logger.LogInformation("Successfully parsed ShipStartOrientation: {Orientation}", orientation);
+                }
+                
+                return new GameState
+                {
+                    Grid = grid,
+                    Ship = new Ship { X = level.ShipStartX, Y = level.ShipStartY, CollectedStars = 0, Orientation = orientation },
+                    Functions = new List<Function>(),
+                    CommandStack = new Queue<Command>(),
+                    ExecutionCount = 0,
+                    MaxCommands = level.MaxCommands, // User-visible limit for adding commands
+                    MaxExecutions = MaxExecutionsLimit, // Internal limit for execution
+                    IsGameOver = false,
+                    IsWin = false
+                };
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to parse tiles JSON: {Json}", level.TilesJson);
+                throw new Exception("Invalid tiles JSON format", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error building game state for level {LevelId}", levelId);
+                throw;
+            }
         }
 
         private Function BuildFunctionFromUserCommands(List<UserCommand> userCommands)

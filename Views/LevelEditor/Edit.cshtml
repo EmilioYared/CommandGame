@@ -99,7 +99,7 @@
         <div class="row mt-3">
             <div class="col-12">
                 <div id="gridContainer" class="border rounded p-3 mb-3" style="overflow-x: auto;">
-                    <div id="grid" style="display: grid; gap: 2px; grid-auto-flow: column;"></div>
+                    <div id="grid" style="display: grid; gap: 2px;"></div>
                 </div>
             </div>
         </div>
@@ -141,13 +141,21 @@
             // Load existing grid data
             try {
                 grid = JSON.parse(document.getElementById('tilesJson').value);
+                // Ensure all colors have the correct format (without 'Color' suffix)
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        if (grid[y][x] && grid[y][x].color && grid[y][x].color.endsWith('Color')) {
+                            grid[y][x].color = grid[y][x].color.replace('Color', '');
+                        }
+                    }
+                }
             } catch {
                 grid = [];
                 for (let y = 0; y < height; y++) {
                     grid[y] = [];
                     for (let x = 0; x < width; x++) {
                         grid[y][x] = {
-                            color: 'None',
+                            color: 'None',  // Use the enum value without Color suffix
                             hasStar: false
                         };
                     }
@@ -155,9 +163,8 @@
             }
 
             // Set grid properties
-            gridElement.style.gridTemplateRows = `repeat(${height}, 40px)`;
             gridElement.style.gridTemplateColumns = `repeat(${width}, 40px)`;
-            gridElement.style.gridAutoFlow = 'row';
+            gridElement.style.gridTemplateRows = `repeat(${height}, 40px)`;
             gridElement.style.width = 'fit-content';
             gridElement.style.margin = '0 auto';
 
@@ -185,7 +192,7 @@
         function handleCellClick(x, y, cell) {
             switch (currentTool) {
                 case 'color':
-                    grid[y][x].color = currentColor;
+                    grid[y][x].color = currentColor;  // Don't add Color suffix
                     break;
                 case 'star':
                     grid[y][x].hasStar = !grid[y][x].hasStar;
@@ -211,7 +218,8 @@
                     case 'Red': cell.style.backgroundColor = '#ffcdd2'; break;
                     case 'Blue': cell.style.backgroundColor = '#bbdefb'; break;
                     case 'Green': cell.style.backgroundColor = '#c8e6c9'; break;
-                    default: cell.style.backgroundColor = '#fff';
+                    case 'White': cell.style.backgroundColor = '#fff'; break;
+                    default: cell.style.backgroundColor = '#eee';
                 }
 
                 // Show/hide star
@@ -250,7 +258,7 @@
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
                     grid[y][x] = {
-                        color: 'None',
+                        color: 'None',  // Use the enum value directly
                         hasStar: false
                     };
                 }

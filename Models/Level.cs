@@ -13,7 +13,7 @@ namespace CommandGame.Models
         public int Height { get; set; }
         public int ShipStartX { get; set; }
         public int ShipStartY { get; set; }
-        public int MaxCommands { get; set; }
+        public int MaxCommands { get; set; } // Maximum number of commands that can be added to a function by the user
         public string TilesJson { get; set; }
         public string ShipStartOrientation { get; set; }
         
