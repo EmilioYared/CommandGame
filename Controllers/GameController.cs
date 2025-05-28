@@ -2,27 +2,40 @@ using Microsoft.AspNetCore.Mvc;
 using CommandGame.Services;
 using CommandGame.Models;
 using CommandGame.Extensions;
+using CommandGame.Data;
 using System.Text.Json;
+using System.Linq;
 
 namespace CommandGame.Controllers
 {
     public class GameController : Controller
     {
+        private readonly ApplicationDbContext _context;
         private const string CommandListKey = "UserCommands";
         private const string GameStateKey = "GameState";
 
+        public GameController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(int levelId = 1)
         {
             var userCommands = GetUserCommands();
-            var state = HttpContext.Session.GetObject<GameState>(GameStateKey) ?? new GameEngine().State;
+            var state = HttpContext.Session.GetObject<GameState>(GameStateKey);
+            if (state == null)
+            {
+                state = BuildGameStateFromLevel(levelId);
+            }
             ViewBag.UserCommands = userCommands;
             ViewBag.CommandStack = state.CommandStack?.ToList();
+            ViewBag.LevelId = levelId;
             return View("Game", state);
         }
 
         [HttpPost]
-        public IActionResult Index(string commandType, string color, string action)
+        public IActionResult Index(string commandType, string color, string action, int levelId = 1)
         {
             var userCommands = GetUserCommands();
             if (action == "add")
@@ -33,27 +46,31 @@ namespace CommandGame.Controllers
                     Color = color
                 });
                 SaveUserCommands(userCommands);
-                var engine = new GameEngine();
+                var state = BuildGameStateFromLevel(levelId);
                 ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = engine.State.CommandStack?.ToList();
+                ViewBag.CommandStack = state.CommandStack?.ToList();
+                ViewBag.LevelId = levelId;
                 HttpContext.Session.Remove(GameStateKey);
-                return View("Game", engine.State);
+                return View("Game", state);
             }
             else if (action == "run")
             {
                 var function = BuildFunctionFromUserCommands(userCommands);
-                var engine = new GameEngine();
-                engine.State.Functions.Clear();
-                engine.State.Functions.Add(function);
-                // Enqueue all commands in original order for run
-                engine.State.CommandStack.Clear();
+                var state = BuildGameStateFromLevel(levelId);
+                state.Functions.Clear();
+                state.Functions.Add(function);
+                state.CommandStack.Clear();
                 foreach (var cmd in function.Commands)
-                    engine.State.CommandStack.Enqueue(cmd);
+                    state.CommandStack.Enqueue(cmd);
+                // Run the game
+                var engine = new GameEngine();
+                engine.State = state;
                 engine.Run();
                 ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = engine.State.CommandStack?.ToList();
-                HttpContext.Session.SetObject(GameStateKey, engine.State);
-                return View("Game", engine.State);
+                ViewBag.CommandStack = state.CommandStack?.ToList();
+                ViewBag.LevelId = levelId;
+                HttpContext.Session.SetObject(GameStateKey, state);
+                return View("Game", state);
             }
             else if (action == "step")
             {
@@ -61,13 +78,11 @@ namespace CommandGame.Controllers
                 var state = HttpContext.Session.GetObject<GameState>(GameStateKey);
                 if (state == null)
                 {
-                    var engine = new GameEngine();
-                    engine.State.Functions.Clear();
-                    engine.State.Functions.Add(function);
-                    // Enqueue all commands in original order
+                    state = BuildGameStateFromLevel(levelId);
+                    state.Functions.Clear();
+                    state.Functions.Add(function);
                     foreach (var cmd in function.Commands)
-                        engine.State.CommandStack.Enqueue(cmd);
-                    state = engine.State;
+                        state.CommandStack.Enqueue(cmd);
                 }
                 // Step: execute one command
                 if (state.CommandStack.Count > 0 && !state.IsGameOver && state.ExecutionCount < state.MaxExecutions)
@@ -102,22 +117,56 @@ namespace CommandGame.Controllers
                 }
                 ViewBag.UserCommands = userCommands;
                 ViewBag.CommandStack = state.CommandStack?.ToList();
+                ViewBag.LevelId = levelId;
                 HttpContext.Session.SetObject(GameStateKey, state);
                 return View("Game", state);
             }
             else if (action == "reset")
             {
                 HttpContext.Session.Remove(GameStateKey);
-                var engine = new GameEngine();
+                var state = BuildGameStateFromLevel(levelId);
                 ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = engine.State.CommandStack?.ToList();
-                return View("Game", engine.State);
+                ViewBag.CommandStack = state.CommandStack?.ToList();
+                ViewBag.LevelId = levelId;
+                return View("Game", state);
             }
             // Default fallback
-            var defaultEngine = new GameEngine();
+            var defaultState = BuildGameStateFromLevel(levelId);
             ViewBag.UserCommands = userCommands;
-            ViewBag.CommandStack = defaultEngine.State.CommandStack?.ToList();
-            return View("Game", defaultEngine.State);
+            ViewBag.CommandStack = defaultState.CommandStack?.ToList();
+            ViewBag.LevelId = levelId;
+            return View("Game", defaultState);
+        }
+
+        private GameState BuildGameStateFromLevel(int levelId)
+        {
+            var level = _context.Levels.FirstOrDefault(l => l.LevelId == levelId);
+            if (level == null) throw new Exception($"Level {levelId} not found");
+            var tiles = JsonSerializer.Deserialize<List<List<TileData>>>(level.TilesJson);
+            var grid = new GridTile[level.Height][];
+            for (int y = 0; y < level.Height; y++)
+            {
+                grid[y] = new GridTile[level.Width];
+                for (int x = 0; x < level.Width; x++)
+                {
+                    grid[y][x] = new GridTile
+                    {
+                        Color = Enum.Parse<TileColor>(tiles[y][x].Color),
+                        HasStar = tiles[y][x].HasStar
+                    };
+                }
+            }
+            return new GameState
+            {
+                Grid = grid,
+                Ship = new Ship { X = level.ShipStartX, Y = level.ShipStartY, CollectedStars = 0 },
+                Functions = new List<Function>(),
+                CommandStack = new Queue<Command>(),
+                ExecutionCount = 0,
+                MaxExecutions = level.MaxCommands,
+                IsGameOver = false,
+                IsWin = false
+            };
         }
 
         private Function BuildFunctionFromUserCommands(List<UserCommand> userCommands)
@@ -176,7 +225,6 @@ namespace CommandGame.Controllers
                         if (functionIndex >= 0 && functionIndex < state.Functions.Count)
                         {
                             var functionToCall = state.Functions[functionIndex];
-                            // Enqueue commands in original order so the first command is executed next
                             foreach (var fcmd in functionToCall.Commands)
                                 state.CommandStack.Enqueue(fcmd);
                         }

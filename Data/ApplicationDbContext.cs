@@ -11,5 +11,6 @@ namespace CommandGame.Data
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Level> Levels { get; set; }
     }
 }

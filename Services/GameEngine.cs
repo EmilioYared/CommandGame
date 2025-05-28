@@ -4,7 +4,7 @@ namespace CommandGame.Services
 {
     public class GameEngine
     {
-        public GameState State { get; private set; }
+        public GameState State { get; set; }
 
         public GameEngine()
         {
