@@ -26,12 +26,9 @@ namespace CommandGame.Controllers
         [HttpGet]
         public IActionResult Index(int levelId = 1)
         {
+            HttpContext.Session.Remove(GameStateKey);
             var userCommands = GetUserCommands();
-            var state = HttpContext.Session.GetObject<GameState>(GameStateKey);
-            if (state == null)
-            {
-                state = BuildGameStateFromLevel(levelId);
-            }
+            var state = BuildGameStateFromLevel(levelId);
             ViewBag.UserCommands = userCommands;
             ViewBag.CommandStack = state.CommandStack?.ToList();
             ViewBag.LevelId = levelId;
@@ -162,6 +159,25 @@ namespace CommandGame.Controllers
             ViewBag.CommandStack = defaultState.CommandStack?.ToList();
             ViewBag.LevelId = levelId;
             return View("Game", defaultState);
+        }
+
+        [HttpGet]
+        public IActionResult SelectLevel()
+        {
+            var levels = _context.Levels
+                .OrderBy(l => l.LevelId)
+                .Select(l => new LevelViewModel
+                {
+                    LevelId = l.LevelId,
+                    Name = l.Name,
+                    Description = l.Description,
+                    MaxCommands = l.MaxCommands,
+                    CreatedAt = l.CreatedAt,
+                    CreatorName = l.Creator != null ? l.Creator.Username : "System"
+                })
+                .ToList();
+            
+            return View(levels);
         }
 
         private GameState BuildGameStateFromLevel(int levelId)
@@ -396,5 +412,15 @@ namespace CommandGame.Controllers
                     if (tile.HasStar) return false;
             return true;
         }
+    }
+
+    public class LevelViewModel
+    {
+        public int LevelId { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int MaxCommands { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string CreatorName { get; set; }
     }
 }

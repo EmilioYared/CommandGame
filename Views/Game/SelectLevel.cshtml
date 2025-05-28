@@ -1,0 +1,50 @@
+@model List<CommandGame.Controllers.LevelViewModel>
+
+@{
+    ViewData["Title"] = "Select Level";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4">Select a Level</h1>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var level in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm hover-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">@level.Name</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Level @level.LevelId</h6>
+                        <p class="card-text">@level.Description</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-code"></i> Max Commands: @level.MaxCommands
+                            </small>
+                            <small class="text-muted">
+                                <i class="fas fa-user"></i> @level.CreatorName
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a href="@Url.Action("Index", "Game", new { levelId = level.LevelId })" 
+                           class="btn btn-primary w-100">
+                            Play Level
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        transition: all .2s ease-in-out;
+    }
+    
+    .card {
+        transition: all .2s ease-in-out;
+    }
+</style> 
