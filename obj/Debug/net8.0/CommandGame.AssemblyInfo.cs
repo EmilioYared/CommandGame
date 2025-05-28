@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CommandGame")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+48e6a9abd8fd1af580070b589dd57f48fb370326")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5db599fe3d62d6be242f8e1eaf4ab022624dc95a")]
 [assembly: System.Reflection.AssemblyProductAttribute("CommandGame")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CommandGame")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

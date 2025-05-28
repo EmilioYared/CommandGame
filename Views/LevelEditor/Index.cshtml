@@ -1,0 +1,80 @@
+@model IEnumerable<CommandGame.Models.Level>
+
+@{
+    ViewData["Title"] = "My Levels";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>My Levels</h1>
+        <a asp-action="Create" class="btn btn-primary">Create New Level</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            You haven't created any levels yet. Click the "Create New Level" button to get started!
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var level in Model)
+            {
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@level.Name</h5>
+                            <p class="card-text">@level.Description</p>
+                            <div class="small text-muted mb-2">
+                                <div>Size: @level.Width x @level.Height</div>
+                                <div>Max Commands: @level.MaxCommands</div>
+                                <div>Created: @level.CreatedAt.ToString("g")</div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="btn-group w-100">
+                                <a asp-action="Edit" asp-route-id="@level.LevelId" class="btn btn-outline-primary">Edit</a>
+                                <a asp-controller="Game" asp-action="Index" asp-route-levelId="@level.LevelId" class="btn btn-outline-success">Play</a>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="confirmDelete(@level.LevelId, '@level.Name')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the level "<span id="levelName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" asp-action="Delete" method="post">
+                    <input type="hidden" id="levelId" name="id" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('levelId').value = id;
+            document.getElementById('levelName').textContent = name;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+} 

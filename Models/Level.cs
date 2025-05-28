@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CommandGame.Models
 {
@@ -14,6 +16,13 @@ namespace CommandGame.Models
         public int MaxCommands { get; set; }
         public string TilesJson { get; set; }
         public string ShipStartOrientation { get; set; }
+        
+        public int UserId { get; set; }
+        
+        [ForeignKey("UserId")]
+        public User? Creator { get; set; }
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class TileData
