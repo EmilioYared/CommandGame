@@ -1,13 +1,14 @@
 @model CommandGame.Models.GameState
 @{
+    ViewData["Title"] = "Game";
     var grid = Model.Grid;
     var ship = Model.Ship;
     Func<CommandGame.Models.TileColor, string> TileColorClass = color =>
-        color == CommandGame.Models.TileColor.Red ? "tile-red" :
-        color == CommandGame.Models.TileColor.Blue ? "tile-blue" :
-        color == CommandGame.Models.TileColor.Green ? "tile-green" :
-        color == CommandGame.Models.TileColor.White ? "tile-white" :
-        "tile-none";
+        color == CommandGame.Models.TileColor.Red ? "bg-red-200" :
+        color == CommandGame.Models.TileColor.Blue ? "bg-blue-200" :
+        color == CommandGame.Models.TileColor.Green ? "bg-green-200" :
+        color == CommandGame.Models.TileColor.White ? "bg-white" :
+        "bg-gray-100";
     var commandTypes = new[] { "Up", "TurnLeft", "TurnRight", "CallFunction" };
     var colors = new[] { "None", "Red", "Blue", "Green" };
     var userCommands = ViewBag.UserCommands as List<CommandGame.Models.UserCommand> ?? new List<CommandGame.Models.UserCommand>();
@@ -21,114 +22,68 @@
     };
 }
 
-<h2>Command Game Prototype</h2>
-
-@if (TempData["Error"] != null)
-{
-    <div style="color: red; margin-bottom: 10px; padding: 8px; background: #fff0f0; border: 1px solid #ffd0d0; border-radius: 4px;">
-        @TempData["Error"]
-    </div>
-}
-
-<div class="command-editor">
-    <h3>Build Your Function (f0)</h3>
-    <div style="margin-bottom: 8px;">
-        <small>Command limit: @Model.MaxCommands</small>
-        <span style="color: @(userCommands.Count >= Model.MaxCommands ? "red" : "inherit")">
-            (@userCommands.Count/@Model.MaxCommands commands used)
-        </span>
-    </div>
-    <form method="post" asp-action="Index" asp-controller="Game">
-        <input type="hidden" name="levelId" value="@ViewBag.LevelId" />
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <select name="commandType">
-                @foreach (var type in commandTypes)
-                {
-                    <option value="@type">@type</option>
-                }
-            </select>
-            <select name="color">
-                @foreach (var color in colors)
-                {
-                    <option value="@color">@color</option>
-                }
-            </select>
-            <button type="submit" name="action" value="add" @(userCommands.Count >= Model.MaxCommands ? "disabled" : "")>Add Command</button>
-            @if (userCommands.Count > 0)
-            {
-                <button type="submit" name="action" value="clear" style="background: #dc3545; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Clear Commands</button>
-            }
+<div class="h-screen flex flex-col overflow-hidden bg-gray-50">
+    <!-- Header -->
+    <div class="h-14 bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 h-full flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-semibold text-gray-900">Level @ViewBag.LevelId</h1>
+                <div class="h-6 w-px bg-gray-200"></div>
+                <div class="text-sm text-gray-600">
+                    @userCommands.Count/@Model.MaxCommands commands available
+                </div>
+            </div>
+            <a asp-action="SelectLevel" asp-controller="Game" 
+               class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-sm font-medium transition-colors">
+                ← Back to Levels
+            </a>
         </div>
-        <div style="margin-top: 10px; display: flex; gap: 10px;">
-            <button type="submit" name="action" value="run" style="background: #007bff; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Run</button>
-            <button type="submit" name="action" value="step" style="background: #28a745; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Step</button>
-            <button type="submit" name="action" value="reset" style="background: #dc3545; color: white; padding: 6px 16px; border: none; border-radius: 4px;">Reset</button>
-        </div>
-    </form>
-    <div>
-        <strong>Current f0:</strong>
-        <ol>
-            @foreach (var cmd in userCommands)
-            {
-                <li>@cmd.Type (@cmd.Color)</li>
-            }
-        </ol>
+    </div>
+
+    <!-- Game Content -->
+    <div id="gameContent" class="flex-1 flex flex-col min-h-0 p-6">
+        @await Html.PartialAsync("_GameContent", Model)
     </div>
 </div>
 
-<div class="stack-visualization">
-    <h3>Command Queue</h3>
-    <ol style="list-style-type: decimal;">
-        @for (int i = 0; i < commandStack.Count; i++)
-        {
-            var cmd = commandStack[i];
-            var isFront = (i == 0);
-            <li style="@(isFront ? "background: #ffe066; font-weight: bold;" : "")">
-                @cmd.Type (@(cmd.Color?.ToString() ?? "None"))
-                @if (isFront) { <span style="color: #d35400;">&larr; Next</span> }
-            </li>
-        }
-    </ol>
-</div>
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const gameContent = document.getElementById('gameContent');
 
-@if (Model.IsGameOver)
-{
-    <h3 style="color:@(Model.IsWin ? "green" : "red")">
-        @(Model.IsWin ? "You Win!" : "Game Over")
-    </h3>
-}
-<table class="game-grid">
-    @for (int y = 0; y < grid.Length; y++)
-    {
-        <tr>
-        @for (int x = 0; x < grid[y].Length; x++)
-        {
-            var tile = grid[y][x];
-            <td class="@TileColorClass(tile.Color)">
-                @if (ship.X == x && ship.Y == y)
-                {
-                    <span class="ship">@ShipArrow(ship.Orientation)</span>
-                }
-                else if (tile.HasStar)
-                {
-                    <span class="star">⭐</span>
-                }
-            </td>
-        }
-        </tr>
-    }
-</table>
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const action = formData.get('action');
+                
+                try {
+                    const response = await fetch('@Url.Action("Index", "Game")', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
 
-<style>
-.game-grid { border-collapse: collapse; }
-.game-grid td { width: 40px; height: 40px; text-align: center; vertical-align: middle; border: 1px solid #888; font-size: 24px; }
-.tile-red { background: #f88; }
-.tile-blue { background: #88f; }
-.tile-green { background: #8f8; }
-.tile-white { background: #fff; }
-.tile-none { background: #eee; }
-.ship { font-size: 24px; }
-.star { font-size: 22px; }
-.command-editor { margin-bottom: 20px; padding: 10px; background: #f4f4f4; border-radius: 8px; }
-.stack-visualization { margin-bottom: 20px; padding: 10px; background: #eaf6ff; border-radius: 8px; }
-</style> 
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const html = await response.text();
+                    gameContent.innerHTML = html;
+
+                    // Reattach event listeners to the new form
+                    const newForm = gameContent.querySelector('form');
+                    if (newForm) {
+                        newForm.addEventListener('submit', arguments.callee);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing your request.');
+                }
+            });
+        });
+    </script>
+} 

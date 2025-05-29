@@ -39,6 +39,8 @@ namespace CommandGame.Controllers
         public IActionResult Index(string commandType, string color, string action, int levelId = 1)
         {
             var userCommands = GetUserCommands();
+            GameState state;
+
             if (action == "add")
             {
                 var level = _context.Levels.FirstOrDefault(l => l.LevelId == levelId);
@@ -58,28 +60,20 @@ namespace CommandGame.Controllers
                     });
                     SaveUserCommands(userCommands);
                 }
-                var state = BuildGameStateFromLevel(levelId);
-                ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = state.CommandStack?.ToList();
-                ViewBag.LevelId = levelId;
+                state = BuildGameStateFromLevel(levelId);
                 HttpContext.Session.Remove(GameStateKey);
-                return View("Game", state);
             }
             else if (action == "clear")
             {
                 userCommands.Clear();
                 SaveUserCommands(userCommands);
-                var state = BuildGameStateFromLevel(levelId);
-                ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = state.CommandStack?.ToList();
-                ViewBag.LevelId = levelId;
+                state = BuildGameStateFromLevel(levelId);
                 HttpContext.Session.Remove(GameStateKey);
-                return View("Game", state);
             }
             else if (action == "run")
             {
                 var function = BuildFunctionFromUserCommands(userCommands);
-                var state = BuildGameStateFromLevel(levelId);
+                state = BuildGameStateFromLevel(levelId);
                 state.Functions.Clear();
                 state.Functions.Add(function);
                 state.CommandStack.Clear();
@@ -89,16 +83,12 @@ namespace CommandGame.Controllers
                 var engine = new GameEngine();
                 engine.State = state;
                 engine.Run();
-                ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = state.CommandStack?.ToList();
-                ViewBag.LevelId = levelId;
                 HttpContext.Session.SetObject(GameStateKey, state);
-                return View("Game", state);
             }
             else if (action == "step")
             {
                 var function = BuildFunctionFromUserCommands(userCommands);
-                var state = HttpContext.Session.GetObject<GameState>(GameStateKey);
+                state = HttpContext.Session.GetObject<GameState>(GameStateKey);
                 if (state == null)
                 {
                     state = BuildGameStateFromLevel(levelId);
@@ -138,27 +128,27 @@ namespace CommandGame.Controllers
                     state.IsGameOver = true;
                     state.IsWin = AllStarsCollected(state);
                 }
-                ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = state.CommandStack?.ToList();
-                ViewBag.LevelId = levelId;
                 HttpContext.Session.SetObject(GameStateKey, state);
-                return View("Game", state);
             }
             else if (action == "reset")
             {
                 HttpContext.Session.Remove(GameStateKey);
-                var state = BuildGameStateFromLevel(levelId);
-                ViewBag.UserCommands = userCommands;
-                ViewBag.CommandStack = state.CommandStack?.ToList();
-                ViewBag.LevelId = levelId;
-                return View("Game", state);
+                state = BuildGameStateFromLevel(levelId);
             }
-            // Default fallback
-            var defaultState = BuildGameStateFromLevel(levelId);
+            else
+            {
+                state = BuildGameStateFromLevel(levelId);
+            }
+
             ViewBag.UserCommands = userCommands;
-            ViewBag.CommandStack = defaultState.CommandStack?.ToList();
+            ViewBag.CommandStack = state.CommandStack?.ToList();
             ViewBag.LevelId = levelId;
-            return View("Game", defaultState);
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_GameContent", state);
+            }
+            return View("Game", state);
         }
 
         [HttpGet]

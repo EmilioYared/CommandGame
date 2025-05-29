@@ -1,14 +1,136 @@
 ﻿@{
-    ViewData["Title"] = "Main Menu";
+    ViewData["Title"] = "Welcome to Command Game";
 }
 
-<div class="max-w-md mx-auto text-center">
-    <h1 class="text-4xl font-bold text-gray-800 mb-8">Welcome to Command Game</h1>
-    
-    <div class="space-y-4">
-        <a asp-action="Game" 
-           class="inline-block w-full px-6 py-3 text-lg font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-            Play Game
-        </a>
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="relative z-10 pb-8 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+                <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                    <div class="sm:text-center lg:text-left">
+                        <h1 class="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+                            <span class="block">Learn Programming</span>
+                            <span class="block text-blue-600">Through Play</span>
+                        </h1>
+                        <p class="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                            Command Game is an interactive programming puzzle game where you learn programming concepts by solving challenges. 
+                            Write commands, create functions, and guide your ship to collect stars while avoiding obstacles.
+                        </p>
+                        <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                            <div class="rounded-md shadow">
+                                <a asp-controller="Game" asp-action="SelectLevel" 
+                                   class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10 transition-all duration-200 transform hover:scale-105">
+                                    Start Playing
+                                </a>
+                            </div>
+                            <div class="mt-3 sm:mt-0 sm:ml-3">
+                                <a href="#features" 
+                                   class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-blue-700 bg-blue-100 hover:bg-blue-200 md:py-4 md:text-lg md:px-10 transition-all duration-200">
+                                    Learn More
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div id="features" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:text-center">
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Features</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    Everything you need to learn programming
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Command Game combines fun gameplay with essential programming concepts to help you learn while having fun.
+                </p>
+            </div>
+
+            <div class="mt-10">
+                <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
+                    <!-- Feature 1 -->
+                    <div class="relative">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                        </div>
+                        <div class="ml-16">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Command-Based Programming</h3>
+                            <p class="mt-2 text-base text-gray-500">
+                                Learn programming fundamentals by writing commands and creating functions to solve puzzles.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="relative">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <div class="ml-16">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Level Editor</h3>
+                            <p class="mt-2 text-base text-gray-500">
+                                Create and share your own levels with the community. Design unique challenges for others to solve.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="relative">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <div class="ml-16">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Step-by-Step Execution</h3>
+                            <p class="mt-2 text-base text-gray-500">
+                                Watch your code execute in real-time. Use step-by-step debugging to understand how your commands work.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="relative">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                        </div>
+                        <div class="ml-16">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Progressive Difficulty</h3>
+                            <p class="mt-2 text-base text-gray-500">
+                                Start with simple commands and gradually tackle more complex programming concepts as you advance.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="bg-blue-50">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                <span class="block">Ready to start your programming journey?</span>
+                <span class="block text-blue-600">Start playing today.</span>
+            </h2>
+            <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0">
+                <div class="inline-flex rounded-md shadow">
+                    <a asp-controller="Game" asp-action="SelectLevel" 
+                       class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 transform hover:scale-105">
+                        Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

@@ -1,0 +1,193 @@
+@model CommandGame.Models.GameState
+@{
+    var grid = Model.Grid;
+    var ship = Model.Ship;
+    Func<CommandGame.Models.TileColor, string> TileColorClass = color =>
+        color == CommandGame.Models.TileColor.Red ? "bg-red-200" :
+        color == CommandGame.Models.TileColor.Blue ? "bg-blue-200" :
+        color == CommandGame.Models.TileColor.Green ? "bg-green-200" :
+        color == CommandGame.Models.TileColor.White ? "bg-white" :
+        "bg-gray-100";
+    var commandTypes = new[] { "Up", "TurnLeft", "TurnRight", "CallFunction" };
+    var colors = new[] { "None", "Red", "Blue", "Green" };
+    var userCommands = ViewBag.UserCommands as List<CommandGame.Models.UserCommand> ?? new List<CommandGame.Models.UserCommand>();
+    var commandStack = ViewBag.CommandStack as List<CommandGame.Models.Command> ?? new List<CommandGame.Models.Command>();
+    string ShipArrow(CommandGame.Models.Orientation orientation) => orientation switch {
+        CommandGame.Models.Orientation.North => "⬆️",
+        CommandGame.Models.Orientation.East => "➡️",
+        CommandGame.Models.Orientation.South => "⬇️",
+        CommandGame.Models.Orientation.West => "⬅️",
+        _ => "⬆️"
+    };
+}
+
+<!-- Main Content Container -->
+<div class="flex-1 flex gap-6">
+    <!-- Left Column: Game Grid -->
+    <div class="w-2/3 flex flex-col">
+        <!-- Game Grid -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
+            @if (Model.IsGameOver)
+            {
+                <div class="mb-4 p-4 rounded-lg @(Model.IsWin ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200")">
+                    <h3 class="font-semibold text-lg flex items-center gap-2">
+                        @if (Model.IsWin)
+                        {
+                            <span>🎉</span>
+                            <span>Level Complete!</span>
+                        }
+                        else
+                        {
+                            <span>Game Over</span>
+                        }
+                    </h3>
+                    @if (Model.IsWin)
+                    {
+                        <p class="mt-1 text-sm">Great job! You've collected all the stars.</p>
+                    }
+                </div>
+            }
+            
+            <div class="flex-1 flex items-center justify-center">
+                <div class="inline-block border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <table class="border-collapse">
+                        @for (int y = 0; y < grid.Length; y++)
+                        {
+                            <tr>
+                            @for (int x = 0; x < grid[y].Length; x++)
+                            {
+                                var tile = grid[y][x];
+                                <td class="@TileColorClass(tile.Color) w-12 h-12 text-center align-middle border border-gray-200">
+                                    @if (ship.X == x && ship.Y == y)
+                                    {
+                                        <span class="text-xl">@ShipArrow(ship.Orientation)</span>
+                                    }
+                                    else if (tile.HasStar)
+                                    {
+                                        <span class="text-lg">⭐</span>
+                                    }
+                                </td>
+                            }
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Controls -->
+    <div class="w-1/3 flex flex-col gap-6">
+        <!-- Command Editor -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Build Your Function</h3>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    @TempData["Error"]
+                </div>
+            }
+
+            <form method="post" asp-action="Index" asp-controller="Game" class="space-y-4">
+                <input type="hidden" name="levelId" value="@ViewBag.LevelId" />
+                
+                <!-- Command Input -->
+                <div class="space-y-3">
+                    <div class="flex gap-3">
+                        <select name="commandType" class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @foreach (var type in commandTypes)
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </select>
+                        <select name="color" class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @foreach (var color in colors)
+                            {
+                                <option value="@color">@color</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" name="action" value="add" 
+                                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                                @(userCommands.Count >= Model.MaxCommands ? "disabled" : "")>
+                            Add Command
+                        </button>
+                        @if (userCommands.Count > 0)
+                        {
+                            <button type="submit" name="action" value="clear" 
+                                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 text-sm font-medium transition-colors">
+                                Clear All
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Current Function -->
+                <div class="space-y-2">
+                    <h4 class="text-sm font-medium text-gray-700">Current Commands:</h4>
+                    <div class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 min-h-[3rem]">
+                        @foreach (var cmd in userCommands)
+                        {
+                            <div class="px-3 py-1.5 bg-white rounded-lg border border-gray-200 text-sm font-medium text-gray-700 shadow-sm">
+                                @cmd.Type (@cmd.Color)
+                            </div>
+                        }
+                        @if (userCommands.Count == 0)
+                        {
+                            <div class="text-gray-500 italic text-sm">No commands added yet</div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-3 gap-3 pt-2">
+                    <button type="submit" name="action" value="run" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-sm font-medium transition-colors">
+                        Run
+                    </button>
+                    <button type="submit" name="action" value="step" 
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 text-sm font-medium transition-colors">
+                        Step
+                    </button>
+                    <button type="submit" name="action" value="reset" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 text-sm font-medium transition-colors">
+                        Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Command Queue -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Command Queue</h3>
+            <div class="flex-1 overflow-x-auto">
+                <div class="flex gap-2 min-w-min">
+                    @for (int i = 0; i < commandStack.Count; i++)
+                    {
+                        var cmd = commandStack[i];
+                        var isFront = (i == 0);
+                        <div class="@(isFront ? "bg-yellow-50 border-yellow-200" : "bg-gray-50 border-gray-200") px-3 py-2 rounded-lg border flex items-center gap-2 text-sm font-medium shadow-sm">
+                            <span class="text-gray-500">@(i + 1).</span>
+                            <span>@cmd.Type</span>
+                            @if (cmd.Color != null)
+                            {
+                                <span class="text-gray-500">(@cmd.Color)</span>
+                            }
+                            @if (isFront) { 
+                                <span class="text-orange-600 ml-1">← Next</span> 
+                            }
+                        </div>
+                    }
+                    @if (commandStack.Count == 0)
+                    {
+                        <div class="text-gray-500 italic text-sm">No commands in queue</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
