@@ -112,4 +112,4 @@ CREATE TABLE levels (
 
 ## Origin
 
-This is a down version of the game given by 42beirut as part of the cognitive skills test, I really like the game whenever I was submitting my application so I though about making a project out of it
+This is a simplified version of the game provided by 42 Beirut as part of their cognitive skills test. I really enjoyed playing it while submitting my application, so I decided to turn it into a project.
