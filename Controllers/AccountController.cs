@@ -18,7 +18,7 @@ namespace CommandGame.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login()  // Displays the login page
         {
             if (User.Identity?.IsAuthenticated == true)
             {
@@ -28,7 +28,7 @@ namespace CommandGame.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login(string username, string password) // Handles the login form submission
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
             

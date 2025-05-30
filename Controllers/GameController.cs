@@ -12,7 +12,7 @@ namespace CommandGame.Controllers
     public class GameController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<GameController> _logger;
+        private readonly ILogger<GameController> _logger; //for logging stuff
         private const string CommandListKey = "UserCommands";
         private const string GameStateKey = "GameState";
         private const int MaxExecutionsLimit = 1000; // Internal limit to prevent infinite loops during execution
@@ -26,10 +26,10 @@ namespace CommandGame.Controllers
         [HttpGet]
         public IActionResult Index(int levelId = 1)
         {
-            HttpContext.Session.Remove(GameStateKey);
-            var userCommands = GetUserCommands();
-            var state = BuildGameStateFromLevel(levelId);
-            ViewBag.UserCommands = userCommands;
+            HttpContext.Session.Remove(GameStateKey); //we remove previous game session
+            var userCommands = GetUserCommands(); //also descibed below in the code
+            var state = BuildGameStateFromLevel(levelId); //described below in the code
+            ViewBag.UserCommands = userCommands; //we are passing to the view
             ViewBag.CommandStack = state.CommandStack?.ToList();
             ViewBag.LevelId = levelId;
             return View("Game", state);
@@ -190,7 +190,7 @@ namespace CommandGame.Controllers
                 {
                     PropertyNameCaseInsensitive = true
                 };
-                var tiles = JsonSerializer.Deserialize<List<List<TileData>>>(level.TilesJson, options);
+                var tiles = JsonSerializer.Deserialize<List<List<TileData>>>(level.TilesJson, options); //derserializing the json stored in the database
                 if (tiles == null)
                 {
                     _logger.LogError("Failed to deserialize tiles JSON");
@@ -288,7 +288,7 @@ namespace CommandGame.Controllers
                     _logger.LogWarning("ShipStartOrientation is null or empty, defaulting to North");
                     orientation = Orientation.North;
                 }
-                else if (!Enum.TryParse<Orientation>(level.ShipStartOrientation, out orientation))
+                else if (!Enum.TryParse<Orientation>(level.ShipStartOrientation, out orientation)) //tryting to convert the level attribute to Orientation enum and stores it in the orientation variable
                 {
                     _logger.LogWarning("Failed to parse ShipStartOrientation: {Orientation}, defaulting to North", level.ShipStartOrientation);
                     orientation = Orientation.North;
@@ -327,6 +327,7 @@ namespace CommandGame.Controllers
         {
             return new Function
             {
+                //we are iterating over every command in the input and transforming it to the Command object
                 Commands = userCommands.Select(cmd => new Command
                 {
                     Type = Enum.TryParse<CommandType>(cmd.Type, out CommandType t) ? t : CommandType.Up,
@@ -337,7 +338,7 @@ namespace CommandGame.Controllers
 
         private List<UserCommand> GetUserCommands()
         {
-            if (TempData[CommandListKey] is string json)
+            if (TempData[CommandListKey] is string json) //if tempdata is a string and exists assign it to json variable tempdata is a session like persistent data that persists between two http requests
             {
                 TempData.Keep(CommandListKey);
                 return JsonSerializer.Deserialize<List<UserCommand>>(json) ?? new List<UserCommand>();

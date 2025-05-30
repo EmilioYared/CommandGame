@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
-
+//this is done to be able to store objects in the session
 namespace CommandGame.Extensions
 {
     public static class SessionExtensions

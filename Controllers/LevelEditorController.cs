@@ -19,14 +19,14 @@ namespace CommandGame.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index()  //whenever we put in the url /LevelEditor/Index, this method will be called
         {
-            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0"); //takes from the jwt token
             var userLevels = _context.Levels
                 .Where(l => l.UserId == userId)
                 .OrderByDescending(l => l.CreatedAt)
                 .ToList();
-            return View(userLevels);
+            return View(userLevels); //data is passed to Views/LevelEditor/Index.cshtml as a model
         }
 
         public IActionResult Create()
@@ -35,7 +35,7 @@ namespace CommandGame.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(Level level, string tilesJson)
+        public async Task<IActionResult> Create(Level level, string tilesJson) //handles the form submission from the Create view
         {
             _logger.LogInformation("Attempting to create level: {Name}", level.Name);
             
@@ -159,7 +159,7 @@ namespace CommandGame.Controllers
 
             _context.Levels.Remove(level);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index));  //redirects the user to the Index action after deletion
         }
     }
 } 

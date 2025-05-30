@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace CommandGame.Controllers
 {
-    [Authorize]
+    [Authorize] //only authenticated users can access this controller
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

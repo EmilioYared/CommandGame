@@ -10,7 +10,7 @@ namespace CommandGame.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<User> Users { get; set; } //links User model to users table in the database
         public DbSet<Level> Levels { get; set; }
     }
 }
